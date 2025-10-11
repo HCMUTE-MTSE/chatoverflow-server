@@ -32,6 +32,7 @@ const NewBlogItemResponse = (blog) =>
     slug: blog.slug,
     summary: blog.summary,
     author: {
+      userId: blog.user?._id,
       avatar: blog.user?.avatar,
       nickName: blog.user?.nickName,
     },
@@ -74,6 +75,7 @@ const NewBlogDetailResponse = (blog) =>
     title: blog.title,
     contentHtml: blog.content_html,
     author: {
+      userId: blog.user?._id,
       avatar: blog.user?.avatar,
       nickName: blog.user?.nickName,
     },

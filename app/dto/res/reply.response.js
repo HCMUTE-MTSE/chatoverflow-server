@@ -7,7 +7,7 @@ class ReplyResponse {
     this.user = {
       _id: reply.user._id,
       name: reply.user.name,
-      avatarUrl: reply.user.avatarUrl || '/avatar.jpg',
+      avatarUrl: reply.user.avatarUrl || '/assets/images/defaultavatar.png',
     };
     this.upvotedBy = reply.upvotedBy || [];
     this.downvotedBy = reply.downvotedBy || [];

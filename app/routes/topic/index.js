@@ -54,4 +54,6 @@ router.get(
   questionController.voteStatus
 );
 
+// Increase view count for a question
+router.post('/:id/view', questionController.increaseView);
 module.exports = router;

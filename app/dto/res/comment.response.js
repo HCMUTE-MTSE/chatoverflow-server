@@ -23,6 +23,7 @@ const NewCommentResponse = (comment) =>
     id: comment._id,
     content: comment.content,
     author: {
+      userId: comment.user?._id,
       avatar: comment.user?.avatar,
       nickName: comment.user?.nickName,
     },

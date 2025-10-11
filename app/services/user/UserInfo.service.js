@@ -3,6 +3,7 @@ const Question = require('../../models/Question.model');
 const Answer = require('../../models/Answer.model');
 const Blog = require('../../models/Blog.model');
 const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
 
 async function updateUserInfo(userId, updateData) {
   try {
@@ -75,12 +76,24 @@ async function updateUserInfo(userId, updateData) {
 
 async function getUserProfile(userId, page = 1, limit = 10) {
   try {
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      console.log('Invalid ObjectId:', userId);
+      return {
+        success: false,
+        message: 'ID người dùng không hợp lệ',
+      };
+    }
+
     // Lấy thông tin user
     const user = await User.findById(userId).select(
       '-password -tempPasswordHash -__v'
     );
 
+    console.log('User found:', !!user);
+
     if (!user || user.status !== 'active') {
+      console.log('User not found or inactive, status:', user?.status);
       return {
         success: false,
         message: !user
@@ -150,6 +163,7 @@ async function getUserProfile(userId, page = 1, limit = 10) {
         user: {
           userId: user._id,
           name: user.name,
+          avatar: user.avatar,
           nickName: user.nickName,
           email: user.email,
           status: user.status,

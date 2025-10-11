@@ -2,17 +2,36 @@ const questionRepository = require('../../repository/question.repository');
 const Question = require('../../models/Question.model');
 const NotificationService = require('../common/notification.service');
 
-async function getQuestionsByType(type) {
+async function getQuestionsByType(type, limit = 20, page = 1) {
+  let sortOption = {};
+
   switch (type) {
     case 'newest':
-      return questionRepository.getNewest();
+      sortOption = { createdAt: -1 };
+      break;
     case 'trending':
-      return questionRepository.getTrending();
-    case 'unanswer':
-      return questionRepository.getUnanswered();
+      sortOption = { views: -1 };
+      break;
+    case 'unanswered':
+      sortOption = { answerCount: 1 };
+      break;
     default:
       return null;
   }
+
+  const skip = (page - 1) * limit;
+
+  const [questions, totalItems] = await Promise.all([
+    Question.find()
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit)
+      .populate('user', 'name avatar')
+      .lean(),
+    Question.countDocuments(),
+  ]);
+
+  return { questions, totalItems };
 }
 
 async function getQuestionDetail(id) {
@@ -157,6 +176,22 @@ async function voteStatus(questionId, userId) {
     throw new Error('Error fetching vote status');
   }
 }
+async function increaseViewCount(questionId) {
+  const question = await Question.findByIdAndUpdate(
+    questionId,
+    { $inc: { views: 1 } },
+    { new: true }
+  );
+
+  if (!question) {
+    throw new Error('Question not found');
+  }
+
+  return {
+    questionId: question._id,
+    totalViews: question.views,
+  };
+}
 
 module.exports = {
   getQuestionsByType,
@@ -167,4 +202,5 @@ module.exports = {
   upvoteQuestion,
   downvoteQuestion,
   voteStatus,
+  increaseViewCount,
 };

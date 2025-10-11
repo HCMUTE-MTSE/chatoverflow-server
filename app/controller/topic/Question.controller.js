@@ -5,11 +5,13 @@ const Question = require('../../models/Question.model');
 async function getQuestions(req, res) {
   try {
     const { type } = req.params;
-    const { limit } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
 
-    const questions = await questionService.getQuestionsByType(
+    const { questions, totalItems } = await questionService.getQuestionsByType(
       type,
-      parseInt(limit) || 20
+      limit,
+      page
     );
 
     if (!questions) {
@@ -20,10 +22,20 @@ async function getQuestions(req, res) {
         );
     }
 
+    const baseUrl = process.env.BACKEND_BASE_URL;
+
     return res.json(
-      ApiResponse.success(`Get questions by type: ${type}`, questions)
+      ApiResponse.withPagination(
+        `Get questions by type: ${type}`,
+        questions,
+        page,
+        limit,
+        baseUrl,
+        totalItems
+      )
     );
   } catch (err) {
+    console.error('❌ Error in getQuestions:', err);
     return res
       .status(500)
       .json(ApiResponse.error('Internal server error', err.message));
@@ -181,6 +193,25 @@ async function voteStatus(req, res) {
     return res.status(400).json(ApiResponse.error(err.message));
   }
 }
+
+async function increaseView(req, res) {
+  try {
+    const { id } = req.params;
+    const result = await questionService.increaseViewCount(id);
+
+    return res.json(
+      ApiResponse.success('View count increased successfully', result)
+    );
+  } catch (err) {
+    if (err.message === 'Question not found') {
+      return res.status(404).json(ApiResponse.error('Question not found'));
+    }
+    return res
+      .status(500)
+      .json(ApiResponse.error('Failed to increase view', err.message));
+  }
+}
+
 module.exports = {
   getQuestions,
   getQuestionDetail,
@@ -190,4 +221,5 @@ module.exports = {
   upvoteQuestion,
   downvoteQuestion,
   voteStatus,
+  increaseView,
 };

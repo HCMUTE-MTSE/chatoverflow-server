@@ -30,9 +30,12 @@ const UserSchema = new mongoose.Schema(
 
       enum: ['active', 'inactive', 'banned', 'pending'],
       default: 'pending',
-
     },
     tempPasswordHash: String,
+    banReason: { type: String, maxlength: 500 },
+    bannedAt: { type: Date },
+    banExpiresAt: { type: Date }, // null = permanent ban
+    unbannedAt: { type: Date },
   },
   { timestamps: true }
 );

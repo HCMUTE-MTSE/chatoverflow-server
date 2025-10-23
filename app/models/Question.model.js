@@ -10,6 +10,9 @@ const QuestionSchema = new mongoose.Schema(
     upvotedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     downvotedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    isHidden: { type: Boolean, default: false },
+    hideReason: { type: String, default: null },
+    hiddenAt: { type: Date, default: null },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );

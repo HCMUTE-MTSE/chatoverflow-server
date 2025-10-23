@@ -19,6 +19,7 @@ class UserRepository {
           localField: '_id',
           foreignField: 'user',
           as: 'questions',
+          pipeline: [{ $match: { isHidden: { $ne: true } } }],
         },
       },
       {
@@ -27,6 +28,7 @@ class UserRepository {
           localField: '_id',
           foreignField: 'user',
           as: 'answers',
+          pipeline: [{ $match: { isHidden: { $ne: true } } }],
         },
       },
       {

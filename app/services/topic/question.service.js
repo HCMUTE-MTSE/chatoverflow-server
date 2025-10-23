@@ -23,7 +23,7 @@ async function getQuestionsByType(type, limit = 20, page = 1) {
   const skip = (page - 1) * limit;
 
   const [questions, totalItems] = await Promise.all([
-    Question.find()
+    Question.find({ isHidden: { $ne: true } })
       .sort(sortOption)
       .skip(skip)
       .limit(limit)
@@ -73,10 +73,11 @@ async function getUserQuestions(userId) {
 }
 
 async function upvoteQuestion(questionId, userId) {
-  const question = await Question.findById(questionId).populate(
-    'user',
-    'name nickName email'
-  );
+  const question = await Question.findOne({
+    _id: questionId,
+    isHidden: { $ne: true },
+  }).populate('user', 'name nickName email');
+
   if (!question) throw new Error('Question not found');
 
   const hasUpvoted = question.upvotedBy.includes(userId);
@@ -120,10 +121,11 @@ async function upvoteQuestion(questionId, userId) {
 }
 
 async function downvoteQuestion(questionId, userId) {
-  const question = await Question.findById(questionId).populate(
-    'user',
-    'name nickName email'
-  );
+  const question = await Question.findOne({
+    _id: questionId,
+    isHidden: { $ne: true },
+  }).populate('user', 'name nickName email');
+
   if (!question) throw new Error('Question not found');
 
   const hasDownvoted = question.downvotedBy.includes(userId);
@@ -168,7 +170,13 @@ async function downvoteQuestion(questionId, userId) {
 
 async function voteStatus(questionId, userId) {
   try {
-    const question = await Question.findById(questionId);
+    const question = await Question.findOne({
+      _id: questionId,
+      isHidden: { $ne: true },
+    });
+
+    if (!question) throw new Error('Question not found');
+
     return {
       upvoted: question.upvotedBy.includes(userId),
       downvoted: question.downvotedBy.includes(userId),
@@ -179,8 +187,11 @@ async function voteStatus(questionId, userId) {
 }
 
 async function increaseViewCount(questionId) {
-  const question = await Question.findByIdAndUpdate(
-    questionId,
+  const question = await Question.findOneAndUpdate(
+    {
+      _id: questionId,
+      isHidden: { $ne: true },
+    },
     { $inc: { views: 1 } },
     { new: true }
   );
@@ -195,7 +206,11 @@ async function increaseViewCount(questionId) {
   };
 }
 async function isQuestionOwner(questionId, userId) {
-  const question = await Question.findById(questionId);
+  const question = await Question.findOne({
+    _id: questionId,
+    isHidden: { $ne: true },
+  });
+
   if (!question) {
     throw new Error('Question not found');
   }

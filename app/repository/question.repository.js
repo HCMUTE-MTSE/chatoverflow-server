@@ -1,7 +1,7 @@
 const Question = require('../models/Question.model');
 
 async function getNewest(limit = 20) {
-  return Question.find()
+  return Question.find({ isHidden: { $ne: true } })
     .sort({ createdAt: -1 })
     .limit(limit)
     .populate('user', 'name avatar')
@@ -10,6 +10,9 @@ async function getNewest(limit = 20) {
 
 async function getTrending(limit = 20) {
   return Question.aggregate([
+    {
+      $match: { isHidden: { $ne: true } },
+    },
     {
       $addFields: {
         upvoteCount: { $size: '$upvotedBy' },
@@ -41,6 +44,9 @@ async function getTrending(limit = 20) {
 async function getUnanswered(limit = 20) {
   return Question.aggregate([
     {
+      $match: { isHidden: { $ne: true } },
+    },
+    {
       $lookup: {
         from: 'answers',
         localField: '_id',
@@ -59,7 +65,10 @@ async function getUnanswered(limit = 20) {
 
 async function getQuestionDetailById(id) {
   try {
-    const question = await Question.findById(id)
+    const question = await Question.findOne({
+      _id: id,
+      isHidden: { $ne: true },
+    })
       .populate('user', 'name avatar')
       .populate({
         path: 'answerCount',
@@ -74,7 +83,10 @@ async function getQuestionDetailById(id) {
 }
 
 async function getQuestionsByUserId(userId) {
-  const userQuestions = await Question.find({ user: userId })
+  const userQuestions = await Question.find({
+    user: userId,
+    isHidden: { $ne: true },
+  })
     .sort({ createdAt: -1 })
     .populate('user', 'name avatar')
     .populate('answerCount');
@@ -90,6 +102,7 @@ async function getQuestionsByTag(tagName, page = 1, limit = 20) {
     {
       $match: {
         tags: { $in: [tagName] },
+        isHidden: { $ne: true },
       },
     },
     {
@@ -160,6 +173,7 @@ async function getQuestionsByTag(tagName, page = 1, limit = 20) {
   // Get total count for pagination
   const totalCount = await Question.countDocuments({
     tags: { $in: [tagName] },
+    isHidden: { $ne: true },
   });
 
   return {
@@ -169,7 +183,10 @@ async function getQuestionsByTag(tagName, page = 1, limit = 20) {
 }
 
 async function getUserVotedQuestions(userId) {
-  const questions = await Question.find({ upvotedBy: userId })
+  const questions = await Question.find({
+    upvotedBy: userId,
+    isHidden: { $ne: true },
+  })
     .sort({ createdAt: -1 })
     .populate('user', 'name avatar')
     .populate('answerCount');

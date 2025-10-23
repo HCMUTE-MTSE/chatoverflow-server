@@ -24,7 +24,12 @@ class AnswerRepository {
     if (sortConfig.requiresAggregation) {
       // Use aggregation pipeline for complex sorting (like upvotes)
       const pipeline = [
-        { $match: { question: new mongoose.Types.ObjectId(questionId) } },
+        {
+          $match: {
+            question: new mongoose.Types.ObjectId(questionId),
+            isHidden: { $ne: true },
+          },
+        },
         {
           $addFields: {
             upvoteCount: { $size: '$upvotedBy' },
@@ -50,20 +55,29 @@ class AnswerRepository {
       ];
 
       answers = await Answer.aggregate(pipeline);
-      total = await Answer.countDocuments({ question: questionId });
+      total = await Answer.countDocuments({
+        question: questionId,
+        isHidden: { $ne: true },
+      });
     } else {
       // Use simple sorting for basic fields
       const sortObj = {};
       sortObj[sortConfig.sortField] = sortConfig.sortOrder;
 
-      answers = await Answer.find({ question: questionId })
+      answers = await Answer.find({
+        question: questionId,
+        isHidden: { $ne: true },
+      })
         .populate('user', 'name avatar')
         .sort(sortObj)
         .skip(skip)
         .limit(limit)
         .lean();
 
-      total = await Answer.countDocuments({ question: questionId });
+      total = await Answer.countDocuments({
+        question: questionId,
+        isHidden: { $ne: true },
+      });
     }
 
     return { answers, total };
@@ -71,7 +85,10 @@ class AnswerRepository {
 
   /** Lấy tổng số answer theo questionId */
   async getTotalByQuestion(questionId) {
-    return Answer.countDocuments({ question: questionId });
+    return Answer.countDocuments({
+      question: questionId,
+      isHidden: { $ne: true },
+    });
   }
 
   /** Tạo mới answer */

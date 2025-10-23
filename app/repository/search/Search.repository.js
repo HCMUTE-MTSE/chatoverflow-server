@@ -31,8 +31,13 @@ const buildDateFilter = (dateRange) => {
 /**
  * Build MongoDB match query from search parameters
  */
-const buildMatchQuery = (query, filters) => {
+const buildMatchQuery = (query, filters, contentType = 'question') => {
   const matchQuery = {};
+
+  // Only filter hidden content for questions
+  if (contentType === 'question') {
+    matchQuery.isHidden = { $ne: true };
+  }
 
   // Text search
   if (query?.trim()) {
@@ -80,7 +85,7 @@ const buildSort = (sortBy, hasTextSearch) => {
  * Search Questions with aggregation pipeline
  */
 exports.searchQuestions = async ({ query, filters, sortBy, page, limit }) => {
-  const matchQuery = buildMatchQuery(query, filters);
+  const matchQuery = buildMatchQuery(query, filters, 'question');
   const hasTextSearch = query?.trim();
   const sort = buildSort(sortBy, hasTextSearch);
   const skip = (page - 1) * limit;
@@ -126,13 +131,14 @@ exports.searchQuestions = async ({ query, filters, sortBy, page, limit }) => {
       },
     },
 
-    // Lookup answers count
+    // Lookup answers count (only non-hidden answers)
     {
       $lookup: {
         from: 'answers',
         localField: '_id',
         foreignField: 'question',
         as: 'answers',
+        pipeline: [{ $match: { isHidden: { $ne: true } } }],
       },
     },
 
@@ -167,7 +173,7 @@ exports.searchQuestions = async ({ query, filters, sortBy, page, limit }) => {
  * Search Blogs with aggregation pipeline
  */
 exports.searchBlogs = async ({ query, filters, sortBy, page, limit }) => {
-  const matchQuery = buildMatchQuery(query, filters);
+  const matchQuery = buildMatchQuery(query, filters, 'blog');
   const hasTextSearch = query?.trim();
   const sort = buildSort(sortBy, hasTextSearch);
   const skip = (page - 1) * limit;
@@ -244,6 +250,7 @@ exports.searchBlogs = async ({ query, filters, sortBy, page, limit }) => {
 exports.getPopularTags = async (limit = 20) => {
   const [questionTags, blogTags] = await Promise.all([
     Question.aggregate([
+      { $match: { isHidden: { $ne: true } } },
       { $unwind: '$tags' },
       { $group: { _id: '$tags', count: { $sum: 1 } } },
     ]),

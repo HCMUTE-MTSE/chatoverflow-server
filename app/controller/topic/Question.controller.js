@@ -45,17 +45,47 @@ async function getQuestions(req, res) {
 async function getQuestionDetail(req, res) {
   try {
     const { id } = req.params;
-    const question = await questionService.getQuestionDetail(id);
 
-    if (!question) {
+    // First check if question exists (including hidden ones)
+    const questionExists = await Question.findById(id);
+
+    if (!questionExists) {
       return res
-        .status(400)
+        .status(404)
         .json(
           ApiResponse.error(
             'Question not found, failure rasied at Question.controller'
           )
         );
     }
+
+    // Check if question is hidden
+    if (questionExists.isHidden) {
+      // Set cache control headers for error responses too
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      });
+
+      return res
+        .status(410)
+        .json(
+          ApiResponse.error(
+            'Nội dung này hiện không khả dụng. Bài viết có thể đã bị ẩn hoặc xóa bởi người kiểm duyệt.'
+          )
+        );
+    }
+
+    // Get question detail using service
+    const question = await questionService.getQuestionDetail(id);
+
+    // Set cache control headers to prevent stale cache
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0',
+    });
 
     return res.json(
       ApiResponse.success('Get question detail successfully', question)

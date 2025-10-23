@@ -100,11 +100,17 @@ async function getUserProfile(userId) {
       };
     }
 
-    // Đếm tổng số posts
-    const totalPosts = await Question.countDocuments({ user: userId });
+    // Đếm tổng số posts (chỉ những post không bị ẩn)
+    const totalPosts = await Question.countDocuments({
+      user: userId,
+      isHidden: { $ne: true },
+    });
 
-    // Đếm tổng số answers
-    const totalAnswers = await Answer.countDocuments({ user: userId });
+    // Đếm tổng số answers (chỉ những answer không bị ẩn)
+    const totalAnswers = await Answer.countDocuments({
+      user: userId,
+      isHidden: { $ne: true },
+    });
 
     return {
       success: true,
@@ -145,8 +151,11 @@ async function getUserPosts(userId, page = 1, limit = 10) {
     // Validate ObjectId
     const skip = (page - 1) * limit;
 
-    // Lấy danh sách posts của user với pagination
-    const posts = await Question.find({ user: userId })
+    // Lấy danh sách posts của user với pagination (chỉ những post không bị ẩn)
+    const posts = await Question.find({
+      user: userId,
+      isHidden: { $ne: true },
+    })
       .sort({ createdAt: -1, _id: -1 })
       .skip(skip)
       .limit(limit)
@@ -154,10 +163,15 @@ async function getUserPosts(userId, page = 1, limit = 10) {
       .select('title content tags askedTime views upvotedBy downvotedBy')
       .lean();
 
-    // Lấy answerCount cho tất cả posts một lần
+    // Lấy answerCount cho tất cả posts một lần (chỉ đếm answer không bị ẩn)
     const postIds = posts.map((post) => post._id);
     const answerCounts = await Answer.aggregate([
-      { $match: { question: { $in: postIds } } },
+      {
+        $match: {
+          question: { $in: postIds },
+          isHidden: { $ne: true },
+        },
+      },
       { $group: { _id: '$question', count: { $sum: 1 } } },
     ]);
     const answerCountMap = {};
@@ -182,7 +196,10 @@ async function getUserPosts(userId, page = 1, limit = 10) {
       message: 'Lấy danh sách bài viết thành công',
       data: {
         posts: postsWithStats,
-        totalPosts: await Question.countDocuments({ user: userId }),
+        totalPosts: await Question.countDocuments({
+          user: userId,
+          isHidden: { $ne: true },
+        }),
       },
     };
   } catch (error) {
@@ -197,7 +214,10 @@ async function getUserPosts(userId, page = 1, limit = 10) {
 async function getUserAnswers(userId, page = 1, limit = 10) {
   try {
     const skip = (page - 1) * limit;
-    const answers = await Answer.find({ user: userId })
+    const answers = await Answer.find({
+      user: userId,
+      isHidden: { $ne: true },
+    })
       .sort({ createdAt: -1, _id: -1 })
       .populate('user', 'name nickName avatar')
       .populate('question', '_id')
@@ -209,7 +229,10 @@ async function getUserAnswers(userId, page = 1, limit = 10) {
     answers.forEach((ans) => {
       ans.question = ans.question?._id || ans.question;
     });
-    const totalAnswers = await Answer.countDocuments({ user: userId });
+    const totalAnswers = await Answer.countDocuments({
+      user: userId,
+      isHidden: { $ne: true },
+    });
 
     return {
       success: true,
@@ -239,18 +262,34 @@ async function getUserStatistics(userId) {
       };
     }
 
-    // Lấy thống kê cho người dùng
-    const totalQuestions = await Question.countDocuments({ user: userId });
-    const totalAnswers = await Answer.countDocuments({ user: userId });
+    // Lấy thống kê cho người dùng (chỉ đếm những item không bị ẩn)
+    const totalQuestions = await Question.countDocuments({
+      user: userId,
+      isHidden: { $ne: true },
+    });
+    const totalAnswers = await Answer.countDocuments({
+      user: userId,
+      isHidden: { $ne: true },
+    });
     const totalBlogs = await Blog.countDocuments({ user: userId });
     const totalViewsAgg = await Question.aggregate([
-      { $match: { user: user._id } },
+      {
+        $match: {
+          user: user._id,
+          isHidden: { $ne: true },
+        },
+      },
       { $group: { _id: null, totalViews: { $sum: '$views' } } },
     ]);
     const totalViews =
       totalViewsAgg.length > 0 ? totalViewsAgg[0].totalViews : 0;
     const totalVotesAgg = await Question.aggregate([
-      { $match: { user: user._id } },
+      {
+        $match: {
+          user: user._id,
+          isHidden: { $ne: true },
+        },
+      },
       {
         $project: {
           upvotes: { $size: '$upvotedBy' },
@@ -277,7 +316,13 @@ async function getUserStatistics(userId) {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     // Thống kê số câu hỏi theo ngày
     const questionsByDate = await Question.aggregate([
-      { $match: { user: user._id, createdAt: { $gte: thirtyDaysAgo } } },
+      {
+        $match: {
+          user: user._id,
+          createdAt: { $gte: thirtyDaysAgo },
+          isHidden: { $ne: true },
+        },
+      },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -288,7 +333,13 @@ async function getUserStatistics(userId) {
 
     // Thống kê số câu trả lời theo ngày
     const answersByDate = await Answer.aggregate([
-      { $match: { user: user._id, createdAt: { $gte: thirtyDaysAgo } } },
+      {
+        $match: {
+          user: user._id,
+          createdAt: { $gte: thirtyDaysAgo },
+          isHidden: { $ne: true },
+        },
+      },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },

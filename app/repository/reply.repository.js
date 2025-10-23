@@ -21,7 +21,13 @@ class ReplyRepository {
 
   // 🔹 Thay vì chỉ filter answerId, thêm luôn parentId
   async findReplies(filter, skip, limit) {
-    return Reply.find(filter)
+    // Add isHidden filter to existing filter
+    const finalFilter = {
+      ...filter,
+      isHidden: { $ne: true },
+    };
+
+    return Reply.find(finalFilter)
       .populate('user', 'name avatarUrl')
       .sort({ createdAt: 1 }) // ascending order for thread readability
       .skip(skip)
@@ -30,7 +36,13 @@ class ReplyRepository {
   }
 
   async countReplies(filter) {
-    return Reply.countDocuments(filter);
+    // Add isHidden filter to existing filter
+    const finalFilter = {
+      ...filter,
+      isHidden: { $ne: true },
+    };
+
+    return Reply.countDocuments(finalFilter);
   }
 
   async addUpvote(replyId, userId) {
@@ -80,7 +92,13 @@ class ReplyRepository {
   }
 
   async findAllChildrenIds(parentId) {
-    const children = await Reply.find({ parent: parentId }, '_id').lean();
+    const children = await Reply.find(
+      {
+        parent: parentId,
+        isHidden: { $ne: true },
+      },
+      '_id'
+    ).lean();
     let allChildren = children.map((child) => child._id);
 
     for (const child of children) {
